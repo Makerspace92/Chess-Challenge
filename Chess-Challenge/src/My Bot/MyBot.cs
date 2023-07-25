@@ -30,6 +30,7 @@ public class MyBot : IChessBot
 
             if(IsCheckmate(move))
             {
+                // System.Console.WriteLine(board.PlyCount);
                 return int.MaxValue;
             }
 
@@ -53,7 +54,21 @@ public class MyBot : IChessBot
                 eval += 1000 / (board.PlyCount - 5);
             }
 
+            if(board.SquareIsAttackedByOpponent(move.TargetSquare))
+            {
+                eval -= pieceValues[(int)move.MovePieceType];
+            }
+
+            if(board.SquareIsAttackedByOpponent(move.StartSquare))
+            {
+                eval += pieceValues[(int)move.MovePieceType];
+            }
             
+
+            if(board.GetPiece(move.StartSquare).IsPawn)
+            {
+                eval += 100 * (board.PlyCount - 20);
+            }
             
 
             return eval;
