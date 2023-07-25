@@ -1,0 +1,6 @@
+{
+    "omnisharp.dotnetPath": "/usr/local/share/dotnet/sdk/6.0.412",
+    "omnisharp.dotNetCliPaths": [
+        "/usr/local/share/dotnet/sdk/6.0.412"
+    ]
+}
