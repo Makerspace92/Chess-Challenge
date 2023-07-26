@@ -7,13 +7,13 @@ namespace ChessChallenge.Application
         public const string Version = "1.14";
 
         // Game settings
-        public const int GameDurationMilliseconds = 480 * 1000;
+        public const int GameDurationMilliseconds = 600 * 1000;
         public const float MinMoveDelay = 0;
         public static readonly bool RunBotsOnSeparateThread = true;
 
         // Display settings
         public const bool DisplayBoardCoordinates = true;
-        public static readonly Vector2 ScreenSizeSmall = new(1280, 720);
+        public static readonly Vector2 ScreenSizeSmall = new(1000, 720);//(1280, 720)
         public static readonly Vector2 ScreenSizeBig = new(1920, 1080);
 
         // Other settings

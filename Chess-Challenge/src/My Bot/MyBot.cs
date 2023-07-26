@@ -1,6 +1,6 @@
 ﻿using ChessChallenge.API;
 using System;
-
+using System.Linq;
 public class MyBot : IChessBot
 {
     public Move Think(Board board, Timer timer)
@@ -13,82 +13,65 @@ public class MyBot : IChessBot
         Console.WriteLine(BoardEval());
         int bestEval = int.MinValue;
         Move moveToPlay = Move.NullMove;
-        
-
+        Random rng = new Random();
 
         foreach(Move move in moves)
         {
-            board.MakeMove(move);
-            int currentEval = -MoveEval(5, int.MinValue, int.MaxValue);
-            board.UndoMove(move);
-
-            if(currentEval > bestEval)
+            int moveEval = MiniMax(move, 4);
+            
+            if(moveEval > bestEval)
             {
                 moveToPlay = move;
-                bestEval = currentEval;
+                bestEval = moveEval;
             }
+            
+            Console.ForegroundColor = ConsoleColor.DarkMagenta;
             Console.Write(move);
-            Console.Write("  Eval: ", Console.ForegroundColor = ConsoleColor.DarkMagenta);
-            Console.WriteLine(currentEval);
+            Console.Write("  Eval: ");
+            Console.WriteLine(moveEval);
         }
+
         Console.Write("Total moves searched: ", Console.ForegroundColor = ConsoleColor.Cyan);
         Console.WriteLine(ct);
-        return !moveToPlay.IsNull ? moveToPlay : moves[0];
+        return !moveToPlay.IsNull ? moveToPlay : moves[rng.Next(moves.Length)];
 
         
-        int MoveEval(uint deapth, int alpha, int beta)
+        int MiniMax(Move move, uint Depth)
         {
-            if(deapth == 0)
-            {
-                return SearchCaptures(alpha, beta);
-            }
+            board.MakeMove(move);
+            int currentEval = -Search(Depth - 1);
+            board.UndoMove(move); 
 
-            if(board.IsInCheckmate())
+            int Search(uint depth)
             {
-                return int.MinValue;
-            }
-
-            foreach(Move move1 in board.GetLegalMoves())
-            {
-                board.MakeMove(move1);
-                int eval1 = -MoveEval(deapth - 1, -beta, -alpha);
-                board.UndoMove(move1);
-
-                if(eval1 >= beta)
+                if(depth == 0)
                 {
-                    return beta;
+                    return BoardEval();
                 }
-                alpha = eval1 > alpha ? eval1 : alpha;
+
+                Move[] searchMoves = board.GetLegalMoves();
+                int searchBestEval = int.MinValue + 1;
+
+                if(!searchMoves.Any())
+                {
+                    if(board.IsInCheckmate()){return int.MinValue + 1;}
+                    return 0;
+                }
+
+                foreach(Move searchMove in searchMoves)
+                {
+                    board.MakeMove(searchMove);
+                    int eval = -Search(depth - 1);
+                    board.UndoMove(searchMove);
+                    searchBestEval = eval > searchBestEval ? eval : searchBestEval;
+                }
+                return searchBestEval;
             }
 
-            return alpha;
+            return currentEval;
         }
 
-        int SearchCaptures(int alpha, int beta)
-        {
-            int eval = BoardEval();
-            if(eval >= beta)
-            {
-                return beta;
-            }
-            alpha = eval > alpha ? eval : alpha;
-
-            foreach(Move capture in board.GetLegalMoves(true))
-            {
-                board.MakeMove(capture);
-                eval = -SearchCaptures(-beta, -alpha);
-                board.UndoMove(capture);
-
-                if(eval >= beta)
-                {
-                    return beta;
-                }
-                alpha = eval > alpha ? eval : alpha;
-            }
-            return alpha;
-        }
-
-
+        
 
         int BoardEval()
         {
