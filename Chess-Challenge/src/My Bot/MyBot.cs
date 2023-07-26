@@ -16,7 +16,7 @@ public class MyBot : IChessBot
         foreach(Move move in moves)
         {
             board.MakeMove(move);
-            int currentEval = MoveEval(6, -10000, -10000);
+            int currentEval = MoveEval();
             board.UndoMove(move);
 
             if(currentEval > bestEval)
@@ -33,7 +33,7 @@ public class MyBot : IChessBot
         return moveToPlay;
 
         
-        int MoveEval(uint deapth, int alpha, int beta)
+        int MoveEval(uint deapth=4)
         {
             if(deapth == 0)
             {
@@ -45,20 +45,16 @@ public class MyBot : IChessBot
                 return int.MinValue;
             }
 
+            int bestBoardEval = int.MinValue;
             foreach(Move move1 in board.GetLegalMoves())
             {
                 board.MakeMove(move1);
-                int eval1 = MoveEval(deapth - 1, -alpha, -beta);
+                int eval1 = MoveEval(deapth - 1);
+                bestBoardEval = eval1 > bestBoardEval ? eval1 : bestBoardEval;
                 board.UndoMove(move1);
-
-                if(eval1 >= beta)
-                {
-                    return beta;
-                }
-                alpha = eval1 > alpha ? eval1 : alpha;
             }
 
-            return alpha;
+            return bestBoardEval;
         }
 
 
