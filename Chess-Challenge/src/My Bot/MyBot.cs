@@ -1,13 +1,16 @@
 ﻿using ChessChallenge.API;
+using System;
 
 public class MyBot : IChessBot
 {
     public Move Think(Board board, Timer timer)
     {
+        Console.Clear();
         int ct = -1;
         int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
         Move[] moves = board.GetLegalMoves();
-        System.Console.WriteLine(BoardEval());
+        Console.Write("Current evaluation: ", Console.ForegroundColor = ConsoleColor.DarkYellow);
+        Console.WriteLine(BoardEval());
         int bestEval = int.MinValue;
         Move moveToPlay = Move.NullMove;
         
@@ -16,7 +19,7 @@ public class MyBot : IChessBot
         foreach(Move move in moves)
         {
             board.MakeMove(move);
-            int currentEval = MoveEval();
+            int currentEval = -MoveEval(5, int.MinValue, int.MaxValue);
             board.UndoMove(move);
 
             if(currentEval > bestEval)
@@ -24,20 +27,20 @@ public class MyBot : IChessBot
                 moveToPlay = move;
                 bestEval = currentEval;
             }
-            // System.Console.Write(move);
-            // System.Console.Write("  Eval: ");
-            // System.Console.WriteLine(currentEval);
+            Console.Write(move);
+            Console.Write("  Eval: ", Console.ForegroundColor = ConsoleColor.DarkMagenta);
+            Console.WriteLine(currentEval);
         }
-
-         System.Console.WriteLine(ct);
-        return moveToPlay;
+        Console.Write("Total moves searched: ", Console.ForegroundColor = ConsoleColor.Cyan);
+        Console.WriteLine(ct);
+        return !moveToPlay.IsNull ? moveToPlay : moves[0];
 
         
-        int MoveEval(uint deapth=4)
+        int MoveEval(uint deapth, int alpha, int beta)
         {
             if(deapth == 0)
             {
-                return BoardEval();
+                return SearchCaptures(alpha, beta);
             }
 
             if(board.IsInCheckmate())
@@ -45,16 +48,44 @@ public class MyBot : IChessBot
                 return int.MinValue;
             }
 
-            int bestBoardEval = int.MinValue;
             foreach(Move move1 in board.GetLegalMoves())
             {
                 board.MakeMove(move1);
-                int eval1 = MoveEval(deapth - 1);
-                bestBoardEval = eval1 > bestBoardEval ? eval1 : bestBoardEval;
+                int eval1 = -MoveEval(deapth - 1, -beta, -alpha);
                 board.UndoMove(move1);
+
+                if(eval1 >= beta)
+                {
+                    return beta;
+                }
+                alpha = eval1 > alpha ? eval1 : alpha;
             }
 
-            return bestBoardEval;
+            return alpha;
+        }
+
+        int SearchCaptures(int alpha, int beta)
+        {
+            int eval = BoardEval();
+            if(eval >= beta)
+            {
+                return beta;
+            }
+            alpha = eval > alpha ? eval : alpha;
+
+            foreach(Move capture in board.GetLegalMoves(true))
+            {
+                board.MakeMove(capture);
+                eval = -SearchCaptures(-beta, -alpha);
+                board.UndoMove(capture);
+
+                if(eval >= beta)
+                {
+                    return beta;
+                }
+                alpha = eval > alpha ? eval : alpha;
+            }
+            return alpha;
         }
 
 
@@ -75,7 +106,6 @@ public class MyBot : IChessBot
             {
                 eval += pieceValues[(int)pieceList.TypeOfPieceInList] * pieceList.Count * (pieceList.IsWhitePieceList == board.IsWhiteToMove ? 1 : -1);
             }
-
             return eval;
         }
     }
