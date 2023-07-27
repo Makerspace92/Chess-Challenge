@@ -4,6 +4,7 @@ using System.Linq;
 using System.Collections.Generic;
 public class MyBot : IChessBot
 {
+    Dictionary<ulong, int> Transpositions = new Dictionary<ulong, int>();
     public Move Think(Board board, Timer timer)
     {
         Console.Clear();
@@ -15,11 +16,12 @@ public class MyBot : IChessBot
         int bestEval = int.MinValue + 1;
         Move moveToPlay = Move.NullMove;
         Random rng = new Random();
-        Dictionary<ulong, int> Transpositions;
 
         foreach(Move move in moves)
         {
-            int moveEval = MiniMax(move, 4);
+            int moveEval = MiniMax(move, 6);
+
+            if(moveEval == int.MaxValue){return move;}
             
             if(moveEval >= bestEval + rng.Next(2))
             {
@@ -40,16 +42,22 @@ public class MyBot : IChessBot
         int MiniMax(Move move, uint Depth)
         {
             board.MakeMove(move);
+
+            ulong zobristKey = board.ZobristKey;
+
             int currentEval = -Search(Depth - 1, int.MinValue + 1, int.MaxValue);
-            if(board.IsInCheck() && board.PlyCount >= 40){currentEval += 100;}
-            if(board.GameRepetitionHistory.Contains(board.ZobristKey)){currentEval += 100;}
+            
+            if(board.IsInCheck() && board.PlyCount >= 40){currentEval -= 100;}
+            if(board.GameRepetitionHistory.Contains(zobristKey)){currentEval += 100;}
+
             board.UndoMove(move); 
 
             int Search(uint depth, int alpha, int beta)
             {
                 if(depth == 0)
                 {
-                    return BoardEval();
+                    // return BoardEval();
+                    return SearchCaptures(alpha, beta);
                 }
 
                 Move[] searchMoves = board.GetLegalMoves();
@@ -58,7 +66,7 @@ public class MyBot : IChessBot
                 if(!searchMoves.Any())
                 {
                     if(board.IsInCheckmate()){return int.MinValue + 1;}
-                    if(board.IsDraw()){return -100000;}
+                    if(board.IsDraw()){return 0;}
                 }
 
                 foreach(Move searchMove in searchMoves)
@@ -72,6 +80,27 @@ public class MyBot : IChessBot
                 return alpha;
             }
             return currentEval;
+        }
+
+        int SearchCaptures(int alpha, int beta)
+        {
+            int eval = BoardEval();
+            if(eval >= beta){return beta;}
+            alpha = eval > alpha ? eval : alpha;
+
+            Move[] captureMoves = board.GetLegalMoves(true);
+            SortMoves(captureMoves);
+
+            foreach(Move captureMove in captureMoves)
+            {
+                board.MakeMove(captureMove);
+                eval = -SearchCaptures(-beta, -alpha);
+                board.UndoMove(captureMove);
+
+                if(eval >= beta){return beta;}
+                alpha = eval > alpha ? eval : alpha;
+            }
+            return alpha;
         }
 
         void SortMoves(Move[] moveList)
@@ -127,6 +156,8 @@ public class MyBot : IChessBot
 
         int BoardEval()
         {
+            if(Transpositions.ContainsKey(board.ZobristKey)){return Transpositions[board.ZobristKey];}
+
             ct++;
             int eval = 0;
 
@@ -141,6 +172,9 @@ public class MyBot : IChessBot
             {
                 eval += pieceValues[(int)pieceList.TypeOfPieceInList] * pieceList.Count * (pieceList.IsWhitePieceList == board.IsWhiteToMove ? 1 : -1);
             }
+
+            if(Transpositions.Count < 256000){Transpositions.Add(board.ZobristKey, eval);}
+
             return eval;
         }
     }
